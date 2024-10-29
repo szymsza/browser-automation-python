@@ -1,19 +1,17 @@
 from abc import ABC, abstractmethod
-from websockets.sync.client import ClientConnection
+from websockets.sync.client import connect, ClientConnection
 import json
 
 class Browser(ABC):
 
     request_id: int = 0
-
     ws_timeout: int
-
-    ws_endpoint: str
     ws: ClientConnection
 
-    def __init__(self, browser_id: str = None, autoclose_timeout: float = 0.1, port: int = 9222, host: str = '127.0.0.1'):
+    def __init__(self, browser_id: str = None, port: int = 9222, host: str = '127.0.0.1', autoclose_timeout: float = 0.1):
         self.ws_timeout = autoclose_timeout
-        self.initializeConnection(browser_id, port, host)
+        self.ws = connect(self.get_ws_endpoint(host, port, browser_id))
+        self.initialize_connection(browser_id, port, host)
     
     def req_id(self) -> int:
         self.request_id += 1
@@ -25,13 +23,16 @@ class Browser(ABC):
         return json.loads(self.ws.recv(self.ws_timeout))
 
     # --- BROWSER-SPECIFIC METHODS ---
-    # Initialize the browser connection
     @abstractmethod
-    def initializeConnection(self, _browserId, _port, _host):
+    def get_ws_endpoint(self, host: str, port: int, browser_id: str):
         pass
 
     @abstractmethod
-    def closeConnection(self, ):
+    def initialize_connection(self, _browserId, _port, _host):
+        pass
+
+    @abstractmethod
+    def close_connection(self, ):
         pass
 
     @abstractmethod

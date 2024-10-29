@@ -1,15 +1,13 @@
 from .browser import Browser
-from websockets.sync.client import connect
 from time import sleep
 
 class Chromium(Browser):
-    session_id: int
+    session_id: str
 
-    def initializeConnection(self, browserId, port, host):
-        self.ws_endpoint = f'ws://{host}:{port}/devtools/browser/{browserId}'
+    def get_ws_endpoint(self, host: str, port: int, browser_id: str):
+        return f'ws://{host}:{port}/devtools/browser/{browser_id}'
 
-        self.ws = connect(self.ws_endpoint)
-        
+    def initialize_connection(self, browserId, port, host):
         target_response = self.send({
             'method': 'Target.getTargets',
         })
@@ -26,7 +24,7 @@ class Chromium(Browser):
 
         self.session_id = session['params']['sessionId']
 
-    def closeConnection(self):
+    def close_connection(self):
         pass
 
     def navigate(self, url):
