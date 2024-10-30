@@ -8,12 +8,14 @@ class Chromium(Browser):
         return f'ws://{host}:{port}/devtools/browser/{browser_id}'
 
     def initialize_connection(self, browserId, port, host):
+        # Get list of all targets and find a "page" target.
         target_response = self.send({
             'method': 'Target.getTargets',
         })
 
         page_target = list(filter(lambda info: (info['type'] == 'page'), target_response['result']['targetInfos']))[0]['targetId']
 
+        # Attach to the page target.
         session = self.send({
             'method': 'Target.attachToTarget',
             'params': {
@@ -22,7 +24,7 @@ class Chromium(Browser):
             }
         })
 
-        self.session_id = session['params']['sessionId']
+        self.session_id = session['result']['sessionId']
 
     def close_connection(self):
         pass
