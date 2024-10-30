@@ -2,13 +2,27 @@ from abc import ABC, abstractmethod
 from websockets.sync.client import connect, ClientConnection
 import json
 
+# Returns true if:
+# - required == True -> all fields from `pattern` are present in `data` with the same value
+# - required == False -> all fields from `pattern` which are present in `data` have the same value
+def dictionaries_match(pattern: dict, data: dict, required: bool) -> bool:
+    for key in pattern:
+        if required and not key in data:
+            return False
+
+        if key in data:
+            # compare values
+            if not dictionaries_match(pattern[key], data[key], required) if isinstance(pattern[key], dict) else data[key] != pattern[key]:
+                return False
+    return True
+
 class Browser(ABC):
 
     request_id: int = 0
     ws_timeout: int
     ws: ClientConnection
 
-    def __init__(self, browser_id: str = None, port: int = 9222, host: str = '127.0.0.1', autoclose_timeout: float = 0.1):
+    def __init__(self, browser_id: str = None, port: int = 9222, host: str = '127.0.0.1', autoclose_timeout: float = 0.5):
         self.ws_timeout = autoclose_timeout
         self.ws = connect(self.get_ws_endpoint(host, port, browser_id), close_timeout=autoclose_timeout)
         self.initialize_connection(browser_id, port, host)
@@ -24,15 +38,27 @@ class Browser(ABC):
 
         self.ws.send(json.dumps(data))
 
+        return self.receive({
+            'method': data['method'],
+            'id': data['id']
+        }, False)
+    
+    def listen(self, event: str, params: dict) -> dict:
+        return self.receive({
+            'type': 'event',
+            'method': event,
+            'params': params
+        }, True)
+
+    def receive(self, data: dict, required: bool) -> dict:
         result = None
 
-        while (result == None or ('method' in result and result['method'] != data['method']) or ('id' in result and result['id'] != data['id'])):
+        while (result == None or (not dictionaries_match(data, result, required))):
             result = json.loads(self.ws.recv(self.ws_timeout))
-            print(result)
 
             if ('type' in result and result['type'] == 'error'):
                 raise Exception(f'Received browser error: {result}')
-
+            
         return result
 
     # --- BROWSER-SPECIFIC METHODS ---

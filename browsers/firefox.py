@@ -47,16 +47,20 @@ class Firefox(Browser):
         })
 
     def navigate(self, url):
-        self.send({
+        navigation = self.send({
             'method': 'browsingContext.navigate',
             'params': {
                 'url': url,
                 'context': self.browsing_context
             }
-        })
+        })['result']['navigation']
 
-        # TODO - change for a dom content loaded listener
-        sleep(1)
+        # Wait for the DOM to load
+        self.listen('browsingContext.domContentLoaded', {
+            'url': url,
+            'context': self.browsing_context,
+            'navigation': navigation,
+        })
 
     def click(self, x, y):
         self.send({
