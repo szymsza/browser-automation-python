@@ -11,8 +11,8 @@ def dictionaries_match(pattern: dict, data: dict, required: bool) -> bool:
             return False
 
         if key in data:
-            # compare values
-            if not dictionaries_match(pattern[key], data[key], required) if isinstance(pattern[key], dict) else data[key] != pattern[key]:
+            # Equal values, up to slashes
+            if not dictionaries_match(pattern[key], data[key], required) if isinstance(pattern[key], dict) else str(data[key]).replace('/', '') != str(pattern[key]).replace('/', ''):
                 return False
     return True
 
@@ -33,8 +33,6 @@ class Browser(ABC):
     
     def send(self, data: dict) -> dict:
         data['id'] = self.req_id()
-
-        print(data)
 
         self.ws.send(json.dumps(data))
 
